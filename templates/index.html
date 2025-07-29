@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 2px dashed #007bff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        input[type="file"]:hover {
+            border-color: #0056b3;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        p, img {
+            margin-top: 20px;
+            color: #555;
+        }
+        img {
+            max-width: 100%;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sentiment Analysis Of Incoming Calls On HelpDesk</h1>
+        <input type="file" id="audioFile" accept="audio/*">
+        <button onclick="uploadAudio()">Upload & Analyze</button>
+        <p id="result"></p>
+        <img id="sentimentGraph" src="#" alt="Sentiment Graph" style="display: none;">
+    </div>
+
+    <script>
+        function uploadAudio() {
+            let fileInput = document.getElementById('audioFile');
+            if (fileInput.files.length === 0) {
+                alert("Please select an audio file");
+                return;
+            }
+            
+            let formData = new FormData();
+            formData.append("audio", fileInput.files[0]);
+            
+            fetch("/upload", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById("result").innerText = "Error: " + data.error;
+                } else {
+                    document.getElementById("result").innerHTML = `Transcription: ${data.transcription}<br>Sentiment: ${data.sentiment} ${data.emoji}`;
+                    document.getElementById("sentimentGraph").src = data.graph_url;
+                    document.getElementById("sentimentGraph").style.display = "block";
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        }
+    </script>
+</body>
+</html>
