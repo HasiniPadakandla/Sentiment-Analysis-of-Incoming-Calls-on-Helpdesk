@@ -1,6 +1,6 @@
 streamlit
 flask
-speechrecognition
+speech_recognition
 matplotlib
 pandas
 numpy
