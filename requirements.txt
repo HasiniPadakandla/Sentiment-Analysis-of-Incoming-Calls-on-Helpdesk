@@ -1,0 +1,8 @@
+streamlit
+flask
+speechrecognition
+matplotlib
+pandas
+numpy
+scikit-learn
+nltk
