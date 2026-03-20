@@ -1,123 +1,148 @@
 import streamlit as st
 import speech_recognition as sr
 import os
-import matplotlib.pyplot as plt
 from sentiment import get_sentiment
-import pandas as pd
+import plotly.graph_objects as go
 
 # ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="Sentiment Analyzer", layout="wide")
 
-# ---------- DARK STYLE ----------
-st.markdown("""
-<style>
-body {
-    background-color: #0E1117;
-    color: white;
-}
-</style>
-""", unsafe_allow_html=True)
-
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ---------- SESSION STATE ----------
-if "history" not in st.session_state:
-    st.session_state.history = []
-
 # ---------- SIDEBAR ----------
-st.sidebar.title("📌 Project Info")
+st.sidebar.title("📌 About Project")
 st.sidebar.info("""
-AI-powered helpdesk sentiment analyzer  
-Supports audio + text + live mic
+AI-powered Helpdesk Sentiment Analyzer  
+- Speech Recognition  
+- NLP (VADER)  
+- Graph-based Insights  
 """)
 
-mode = st.sidebar.selectbox(
-    "Choose Input Mode",
-    ["Upload Audio", "Live Microphone", "Text Input"]
-)
-
 # ---------- TITLE ----------
-st.markdown("<h1 style='text-align:center;'>📞 Helpdesk Sentiment Dashboard</h1>", unsafe_allow_html=True)
+st.markdown("""
+<h1 style='text-align: center; color: #4CAF50;'>
+📞 Helpdesk Call Sentiment Analyzer
+</h1>
+""", unsafe_allow_html=True)
 
-# ---------- FUNCTION ----------
-def analyze_text(text):
-    sentiment, emoji, polarity = get_sentiment(text)
+# ---------- FILE UPLOAD ----------
+uploaded_file = st.file_uploader("Upload Audio File", type=["wav"])
 
-    st.subheader("📝 Transcription / Text")
-    st.write(text)
+# ---------- GRAPH FUNCTIONS ----------
+def plot_bar_graph(sentiment, polarity):
+    labels = ['Positive', 'Neutral', 'Negative']
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Sentiment", sentiment)
-    col2.metric("Polarity", round(polarity, 2))
-    col3.metric("Confidence", f"{abs(polarity)*100:.1f}%")
+    values = [0.5, 1, 0.5]
 
     if sentiment == "Positive":
-        st.success(f"😊 Positive")
+        values = [1 + abs(polarity), 1 - abs(polarity), 0.5]
     elif sentiment == "Negative":
-        st.error(f"😡 Negative")
-    else:
-        st.warning(f"😐 Neutral")
+        values = [0.5, 1 - abs(polarity), 1 + abs(polarity)]
 
-    st.progress(min(max((polarity + 1)/2, 0), 1))
+    fig = go.Figure(data=[
+        go.Bar(
+            x=labels,
+            y=values,
+            marker_color=['green', 'yellow', 'red']
+        )
+    ])
 
-    # Save history
-    st.session_state.history.append({
-        "text": text,
-        "sentiment": sentiment,
-        "polarity": polarity
-    })
+    fig.update_layout(
+        title="📊 Sentiment Distribution",
+        xaxis_title="Sentiment Type",
+        yaxis_title="Score",
+        template="plotly_dark"
+    )
 
-# ---------- MODE 1: AUDIO ----------
-if mode == "Upload Audio":
-    uploaded_file = st.file_uploader("Upload WAV File", type=["wav"])
+    st.plotly_chart(fig, use_container_width=True)
 
-    if uploaded_file:
-        st.audio(uploaded_file)
 
-        file_path = os.path.join(UPLOAD_FOLDER, uploaded_file.name)
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+def plot_pie_chart(sentiment, polarity):
+    labels = ['Positive', 'Neutral', 'Negative']
 
-        recognizer = sr.Recognizer()
+    values = [0.5, 1, 0.5]
 
-        with st.spinner("Analyzing..."):
-            with sr.AudioFile(file_path) as source:
-                audio_data = recognizer.record(source)
-                try:
-                    text = recognizer.recognize_google(audio_data)
-                    analyze_text(text)
-                except:
-                    st.error("Audio not clear")
+    if sentiment == "Positive":
+        values = [1 + abs(polarity), 1 - abs(polarity), 0.5]
+    elif sentiment == "Negative":
+        values = [0.5, 1 - abs(polarity), 1 + abs(polarity)]
 
-# ---------- MODE 2: LIVE MIC ----------
-elif mode == "Live Microphone":
-    if st.button("🎙 Start Recording"):
-        recognizer = sr.Recognizer()
-        with sr.Microphone() as source:
-            st.info("Speak now...")
-            audio = recognizer.listen(source)
+    fig = go.Figure(data=[
+        go.Pie(labels=labels, values=values, hole=0.4)
+    ])
+
+    fig.update_layout(
+        title="🥧 Sentiment Share",
+        template="plotly_dark"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+
+# ---------- MAIN LOGIC ----------
+if uploaded_file is not None:
+
+    # 🔊 Show audio
+    st.audio(uploaded_file, format="audio/wav")
+
+    file_path = os.path.join(UPLOAD_FOLDER, uploaded_file.name)
+
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+
+    recognizer = sr.Recognizer()
+
+    with st.spinner("Analyzing audio..."):
+        with sr.AudioFile(file_path) as source:
+            audio_data = recognizer.record(source)
 
             try:
-                text = recognizer.recognize_google(audio)
-                analyze_text(text)
-            except:
-                st.error("Could not understand")
+                text = recognizer.recognize_google(audio_data)
 
-# ---------- MODE 3: TEXT ----------
-elif mode == "Text Input":
-    user_text = st.text_area("Enter text")
+                # ---------- TRANSCRIPTION ----------
+                st.subheader("📝 Transcription")
+                st.write(text)
 
-    if st.button("Analyze"):
-        analyze_text(user_text)
+                sentiment, emoji, polarity = get_sentiment(text)
 
-# ---------- HISTORY DASHBOARD ----------
-if st.session_state.history:
-    st.subheader("📊 Sentiment Timeline")
+                # ---------- KPI CARDS ----------
+                col1, col2, col3 = st.columns(3)
 
-    df = pd.DataFrame(st.session_state.history)
+                col1.metric("Sentiment", sentiment)
+                col2.metric("Polarity Score", round(polarity, 2))
+                col3.metric("Confidence", f"{abs(polarity)*100:.1f}%")
 
-    st.line_chart(df["polarity"])
+                # ---------- SENTIMENT BADGE ----------
+                if sentiment == "Positive":
+                    st.success(f"😊 Positive Sentiment")
+                elif sentiment == "Negative":
+                    st.error(f"😡 Negative Sentiment")
+                else:
+                    st.warning(f"😐 Neutral Sentiment")
 
-    st.subheader("📈 Comparison Table")
-    st.dataframe(df)
+                # ---------- PROGRESS BAR ----------
+                st.subheader("📊 Sentiment Strength")
+                st.progress(min(max((polarity + 1)/2, 0), 1))
+
+                # ---------- GRAPHS ----------
+                st.subheader("📈 Sentiment Visualization")
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    plot_bar_graph(sentiment, polarity)
+
+                with col2:
+                    plot_pie_chart(sentiment, polarity)
+
+                # ---------- DETAILS ----------
+                with st.expander("🔍 View Detailed Info"):
+                    st.write("Full Text:", text)
+                    st.write("Polarity Score:", polarity)
+
+            except sr.UnknownValueError:
+                st.error("Could not understand audio")
+
+            except sr.RequestError:
+                st.error("Speech recognition service unavailable")
