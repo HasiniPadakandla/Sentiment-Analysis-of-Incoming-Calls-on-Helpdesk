@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from sentiment import get_sentiment
 
 # ---------- CONFIG ----------
-st.set_page_config(page_title="Helpdesk Sentiment Analyzer", layout="wide")
+st.set_page_config(page_title="Sentiment Analyzer - HelpDesk", layout="wide")
 
 UPLOAD_FOLDER = "uploads"
 GRAPH_FOLDER = "graphs"
@@ -30,7 +30,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------- FILE UPLOAD ----------
-uploaded_file = st.file_uploader("Upload Audio File", type=["wav"])
+uploaded_file = st.file_uploader("Upload the Audio File", type=["wav"])
 
 if uploaded_file is not None:
 
