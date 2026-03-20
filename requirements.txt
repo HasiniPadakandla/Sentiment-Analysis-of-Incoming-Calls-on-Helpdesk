@@ -1,5 +1,6 @@
 streamlit
 SpeechRecognition
+plotly
 matplotlib
 pandas
 numpy
