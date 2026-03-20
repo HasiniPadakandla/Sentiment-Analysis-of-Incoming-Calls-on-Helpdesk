@@ -49,6 +49,11 @@ The system also provides **visual insights** using interactive graphs, making it
 
 ## 📊 Output Example
 
+## 📸 Screenshots
+
+### 🔹 Result (user interface)
+![User Interface](user_interface.png)
+
 * **Transcription:**
   "The service was really helpful and quick."
 
