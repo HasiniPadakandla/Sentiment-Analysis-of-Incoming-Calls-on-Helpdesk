@@ -1,78 +1,71 @@
-from flask import Flask, request, render_template, jsonify, send_file
+import streamlit as st
 import speech_recognition as sr
 import os
 import matplotlib.pyplot as plt
-from sentiment import get_sentiment  
+from sentiment import get_sentiment
 
-app = Flask(__name__)
 UPLOAD_FOLDER = "uploads"
-GRAPH_FOLDER = "static/graphs"
+GRAPH_FOLDER = "graphs"
+
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(GRAPH_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['GRAPH_FOLDER'] = GRAPH_FOLDER
 
 def plot_sentiment_graph(sentiment, polarity, file_name):
     labels = ['Positive', 'Neutral', 'Negative']
     colors = ['green', 'yellow', 'red']
-    
+
     if sentiment == "Positive":
         heights = [1 + abs(polarity), 1 - abs(polarity), 0.5 - abs(polarity)]
     elif sentiment == "Negative":
         heights = [0.5 - abs(polarity), 1 - abs(polarity), 1 + abs(polarity)]
-    else:  
+    else:
         heights = [0.5, 1, 0.5]
 
-    plt.figure(figsize=(8, 6))
-    bars = plt.bar(labels, heights, color=colors)
+    plt.figure(figsize=(6, 4))
+    plt.bar(labels, heights, color=colors)
+    plt.title("Sentiment Analysis Result")
 
-    plt.xlabel('Sentiment')
-    plt.ylabel('Score')
-    plt.title('Sentiment Analysis Result')
-    plt.ylim(0, max(heights) + 0.5)
-
-    graph_path = os.path.join(app.config['GRAPH_FOLDER'], file_name)
+    graph_path = os.path.join(GRAPH_FOLDER, file_name)
     plt.savefig(graph_path)
     plt.close()
+
     return graph_path
 
-@app.route('/')
-def index():
-    return render_template('index.html')
 
-@app.route('/upload', methods=['POST'])
-def upload_audio():
-    if 'audio' not in request.files:
-        return jsonify({"error": "No file uploaded"})
-    file = request.files['audio']
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-    file.save(file_path)
+# ---------------- UI ----------------
+
+st.title("📞 Sentiment Analysis of Helpdesk Calls")
+
+uploaded_file = st.file_uploader("Upload Audio File", type=["wav"])
+
+if uploaded_file is not None:
+    file_path = os.path.join(UPLOAD_FOLDER, uploaded_file.name)
+
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
 
     recognizer = sr.Recognizer()
+
     with sr.AudioFile(file_path) as source:
         audio_data = recognizer.record(source)
+
         try:
             text = recognizer.recognize_google(audio_data)
-            
+            st.subheader("Transcription:")
+            st.write(text)
+
             sentiment, emoji, polarity = get_sentiment(text)
 
-            graph_file_name = f"{file.filename.split('.')[0]}_sentiment.png"
-            graph_path = plot_sentiment_graph(sentiment, polarity, graph_file_name)
+            st.subheader("Sentiment Result:")
+            st.write(f"{sentiment} {emoji}")
 
-            return jsonify({
-                "transcription": text,
-                "sentiment": sentiment,
-                "emoji": emoji,
-                "graph_url": f"/{graph_path}"
-            })
+            graph_file = f"{uploaded_file.name}_graph.png"
+            graph_path = plot_sentiment_graph(sentiment, polarity, graph_file)
+
+            st.image(graph_path, caption="Sentiment Graph")
+
         except sr.UnknownValueError:
-            return jsonify({"error": "Could not understand audio"})
+            st.error("Could not understand audio")
+
         except sr.RequestError:
-            return jsonify({"error": "Speech recognition service unavailable"})
-
-@app.route('/static/graphs/<filename>')
-def get_graph(filename):
-    return send_file(os.path.join(app.config['GRAPH_FOLDER'], filename), mimetype='image/png')
-
-if __name__ == '__main__':
-    app.run(debug=True)
+            st.error("Speech recognition service unavailable")
