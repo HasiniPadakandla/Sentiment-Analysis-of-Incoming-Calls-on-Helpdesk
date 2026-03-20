@@ -11,7 +11,7 @@ UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ---------- SIDEBAR ----------
-st.sidebar.title("📌 About Project")
+st.sidebar.title("📌 About Sentiment Analyzer")
 st.sidebar.info("""
 AI-powered Helpdesk Sentiment Analyzer  
 - Speech Recognition  
