@@ -2,6 +2,9 @@
 
 ### Live URL : https://sentiment-analysis-of-incoming-calls.streamlit.app/
 
+### Demo of Sentiment Analyzer: 
+https://github.com/user-attachments/assets/3d6d7dcb-b7e6-432c-a91e-23808863f633
+
 ## 🚀 Overview
 
 This project is an AI-powered application that analyzes customer support calls and determines the **sentiment of the conversation**. It converts audio into text using speech recognition and applies NLP techniques to classify sentiment as **Positive, Negative, or Neutral**.
